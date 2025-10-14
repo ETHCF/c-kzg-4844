@@ -28,3 +28,6 @@ build/
 .ccls-cache/
 
 target
+
+/src/kzg.js
+/src/kzg.wasm
