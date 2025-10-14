@@ -7,7 +7,7 @@
 char* invalid_arg()
 {
     char* msg = malloc(18);
-    strcpy(msg, "invalid argument");
+    memcpy(msg, "invalid argument", 17);
     msg[17] = 0;
     return msg;
 }
@@ -15,8 +15,16 @@ char* invalid_arg()
 char* unable_to_allocate_memory()
 {
     char* msg = malloc(26);
-    strcpy(msg, "unable to allocate memory");
+    memcpy(msg, "unable to allocate memory", 25);
     msg[25] = 0;
+    return msg;
+}
+
+char* internal_error()
+{
+    char* msg = malloc(15);
+    memcpy(msg, "internal error", 14);
+    msg[14] = 0;
     return msg;
 }
 
@@ -28,17 +36,17 @@ void btox(char* xp, const char* bb, size_t n)
     xp[size] = 0;
 }
 
-uint8_t* xtob(char *hex, uint8_t* out, size_t size)
+uint8_t* xtob(char *hex, uint8_t *out, size_t size)
 {
     uint8_t bytes[size / 2];
     size_t x = 0;
     size_t y = 0;
-    char* ptr = hex;
+    char *ptr = hex;
     while (x < size) {
        char byte[3];
        memcpy(byte, ptr, 2);
        byte[2] = 0;
-       char* temp;
+       char *temp;
        bytes[y] = strtol(byte, &temp, 16);
        x = x + 2;
        y++;
@@ -83,20 +91,20 @@ void free_trusted_setup_wasm()
     s = NULL;
 }
 
-char* blob_to_kzg_commitment_wasm(const Blob* blob)
+char* blob_to_kzg_commitment_wasm(const Blob *blob)
 {
     KZGCommitment commit; 
     memset(&commit, 0, sizeof(KZGCommitment));
     const C_KZG_RET ret = blob_to_kzg_commitment(&commit, blob, s);
     switch (ret) {
-        case C_KZG_BADARGS:
-            return invalid_arg();
-        case C_KZG_MALLOC: 
-            return unable_to_allocate_memory();
-        case C_KZG_OK:
-            break;
-        default: 
-            break;
+    case C_KZG_BADARGS:
+        return invalid_arg();
+    case C_KZG_MALLOC: 
+        return unable_to_allocate_memory();
+    case C_KZG_OK:
+        break;
+    default: 
+        return internal_error();
     }
     const size_t size = sizeof commit.bytes << 1;
     char* hex = malloc(size+1);
@@ -114,12 +122,14 @@ char* compute_blob_kzg_proof_wasm(
 
     const C_KZG_RET ret = compute_blob_kzg_proof(&proof, blob, commitment_bytes, s);
     switch (ret) {
-        case C_KZG_BADARGS:
-            return invalid_arg();
-        case C_KZG_MALLOC: 
-            return unable_to_allocate_memory();
-        default: 
-            break;
+    case C_KZG_BADARGS:
+        return invalid_arg();
+    case C_KZG_MALLOC: 
+        return unable_to_allocate_memory();
+    case C_KZG_OK:
+        break;
+    default: 
+        return internal_error();
     }
     const size_t size = sizeof proof.bytes << 1;
     char* hex = malloc(size+1);
@@ -128,57 +138,54 @@ char* compute_blob_kzg_proof_wasm(
 };
 
 const char* verify_blob_kzg_proof_wasm(
-    const Blob* blob,
-    const Bytes48* commitment_bytes,
-    const Bytes48* proof_bytes)
+    const Blob *blob,
+    const Bytes48 *commitment_bytes,
+    const Bytes48 *proof_bytes)
 {
     bool ok = true;
     const C_KZG_RET ret = verify_blob_kzg_proof(&ok, blob, commitment_bytes, proof_bytes, s);
     switch (ret) {
-        case C_KZG_BADARGS: 
-            return "invalid argument";
-        case C_KZG_MALLOC: 
-            return "unable to allocate memory";
-        case C_KZG_OK:
-            if (ok == 1)
-                return "true";
-            
-            return "false";
-        default: 
-            return "internal error";
+    case C_KZG_BADARGS: 
+        return "invalid argument";
+    case C_KZG_MALLOC: 
+        return "unable to allocate memory";
+    case C_KZG_OK:
+        if (ok == 1)
+            return "true";
+        
+        return "false";
+    default: 
+        return "internal error";
     }
     
 };
 
 const char* verify_kzg_proof_wasm(
-    const Bytes48* commitment_bytes,
-    const Bytes32* z_bytes,
-    const Bytes32* y_bytes,
-    const Bytes48* proof_bytes) 
+    const Bytes48 *commitment_bytes,
+    const Bytes32 *z_bytes,
+    const Bytes32 *y_bytes,
+    const Bytes48 *proof_bytes) 
 {
 
     bool ok = true;
     const C_KZG_RET ret = verify_kzg_proof(&ok, commitment_bytes, z_bytes, y_bytes, proof_bytes, s);
-    if (ret != 0) {
-        switch (ret) {
-            case C_KZG_BADARGS:
-                return "invalid argument";
-            case C_KZG_MALLOC: 
-                return "unable to allocate memory";
-            default: 
-                return "internal error";
-        }
-    } else {
-        if (ok == 1) {
+    switch (ret) {
+    case C_KZG_BADARGS:
+        return "invalid argument";
+    case C_KZG_MALLOC: 
+        return "unable to allocate memory";
+    case C_KZG_OK:
+        if (ok == 1) 
             return "true";
-        }
+        
+        return "false";
+    default: 
+        return "internal error";
     }
-    return "false";
-
-};
+}
 
 
-char* compute_cells_and_kzg_proofs_wasm(const Blob* blob)
+char* compute_cells_and_kzg_proofs_wasm(const Blob *blob)
 {
     Cell cells;
     KZGProof proof;
@@ -187,17 +194,17 @@ char* compute_cells_and_kzg_proofs_wasm(const Blob* blob)
 
     const C_KZG_RET ret = compute_cells_and_kzg_proofs(&cells, &proof, blob, s);
     switch (ret) {
-        case C_KZG_BADARGS: 
-            return invalid_arg();
-        case C_KZG_MALLOC: 
-            return unable_to_allocate_memory();
-        case C_KZG_OK:
-            break; 
-        default: 
-            return "internal error";
+    case C_KZG_BADARGS: 
+        return invalid_arg();
+    case C_KZG_MALLOC: 
+        return unable_to_allocate_memory();
+    case C_KZG_OK:
+        break; 
+    default: 
+        return internal_error();
     }
 
-    char* out = malloc(sizeof(proof.bytes) + sizeof(cells.bytes) + 1);
+    char *out = malloc(sizeof(proof.bytes) + sizeof(cells.bytes) + 1);
 
     btox(out, (const char *)proof.bytes, sizeof(proof.bytes));
     btox((char*)((uintptr_t)out+ sizeof(proof.bytes)), (const char*)cells.bytes, sizeof(cells.bytes));
@@ -206,7 +213,7 @@ char* compute_cells_and_kzg_proofs_wasm(const Blob* blob)
 }
 
 char* recover_cells_and_kzg_proofs_wasm(
-    const uint64_t* cell_indices,
+    const uint64_t *cell_indices,
     const Cell *cells,
     uint64_t num_cells)
 {
@@ -217,29 +224,45 @@ char* recover_cells_and_kzg_proofs_wasm(
 
     const C_KZG_RET ret = recover_cells_and_kzg_proofs(&recovered_cells, &proof, cell_indices, cells, num_cells, s);
     switch (ret) {
-        case C_KZG_BADARGS: 
-            return invalid_arg();
-        case C_KZG_MALLOC: 
-            return "unable to allocate memory";
-        case C_KZG_OK:
-            break; 
-        default: 
-            return "internal error";
+    case C_KZG_BADARGS: 
+        return invalid_arg();
+    case C_KZG_MALLOC: 
+        return unable_to_allocate_memory();
+    case C_KZG_OK:
+        break; 
+    default: 
+        return internal_error();
     }
 
-    char* out = malloc(sizeof(proof.bytes) + sizeof(recovered_cells.bytes) + 1);
+    char *out = malloc(sizeof(proof.bytes) + sizeof(recovered_cells.bytes) + 1);
 
     btox(out, (const char *)proof.bytes, sizeof(proof.bytes));
-    btox((char*)((uintptr_t)out+ sizeof(proof.bytes)), (const char*)recovered_cells.bytes, sizeof(recovered_cells.bytes));
+    btox((char*)((uintptr_t)out + sizeof(proof.bytes)), (const char*)recovered_cells.bytes, sizeof(recovered_cells.bytes));
 
     return out;
 }
 
-// C_KZG_RET recover_cells_and_kzg_proofs(
-//     Cell *recovered_cells,
-//     KZGProof *recovered_proofs,
-//     const uint64_t *cell_indices,
-//     const Cell *cells,
-//     uint64_t num_cells,
-//     const KZGSettings *s
-// );
+
+const char* verify_cell_kzg_proof_batch_wasm(
+    const Bytes48 *commitments_bytes,
+    const uint64_t *cell_indices,
+    const Cell *cells,
+    const Bytes48 *proofs_bytes,
+    uint64_t num_cells)
+{
+    bool ok = true;
+    const C_KZG_RET ret = verify_cell_kzg_proof_batch(&ok, commitments_bytes, cell_indices, cells, proofs_bytes, num_cells, s);
+    switch (ret) {
+    case C_KZG_BADARGS:
+        return "invalid argument";
+    case C_KZG_MALLOC:
+        return "unable to allocate memory";
+    case C_KZG_OK:
+        if (ok == 1)
+            return "true";
+
+        return "false";
+    default:
+        return "internal error";
+    }
+}

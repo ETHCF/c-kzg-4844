@@ -45,17 +45,12 @@ const char* verify_kzg_proof_wasm(
     const Bytes48 *commitment_bytes,
     const Bytes32 *z_bytes,
     const Bytes32 *y_bytes,
-    const Bytes48 *proof_bytes
-);
+    const Bytes48 *proof_bytes);
 
 // EIP-7594 functions
 
 
-// Returns cells and proofs as a hex string
-// first 48 bytes will be the proof
-// the next BYTES_PER_CELL (2048) bytes will be the cells
 char* compute_cells_and_kzg_proofs_wasm(const Blob *blob);
-
 
 char* recover_cells_and_kzg_proofs_wasm(
     const uint64_t* cell_indices,
@@ -63,16 +58,12 @@ char* recover_cells_and_kzg_proofs_wasm(
     uint64_t num_cells
 );
 
-// C_KZG_RET recover_cells_and_kzg_proofs(
-//     Cell *recovered_cells,
-//     KZGProof *recovered_proofs,
-//     const uint64_t *cell_indices,
-//     const Cell *cells,
-//     uint64_t num_cells,
-//     const KZGSettings *s
-// );
-
-
+const char* verify_cell_kzg_proof_batch_wasm(
+    const Bytes48 *commitments_bytes,
+    const uint64_t *cell_indices,
+    const Cell *cells,
+    const Bytes48 *proofs_bytes,
+    uint64_t num_cells);
 
 
 

@@ -80,6 +80,7 @@ ifeq ($(PLATFORM),Windows)
 	CFLAGS += -Wno-missing-braces -Wno-format
 else
 	CC = clang
+	WCC = emcc
 	CFLAGS += -fPIC
 	CFLAGS += -Wmissing-braces -Wformat=2
 endif
@@ -260,3 +261,6 @@ clean:
 	@rm -f *.o */*.o *.profraw *.profdata *.html xray-log.* *.prof *.pdf \
 	    tests tests_cov tests_prof .blst_hash
 	@rm -rf analysis-report
+
+
+EXPORTED_FUNCTIONS= "['_load_trusted_setup_wasm','_free_trusted_setup_wasm','_blob_to_kzg_commitment_wasm','_compute_blob_kzg_proof_wasm','_verify_blob_kzg_proof_wasm', '_verify_kzg_proof_wasm', '_compute_cells_and_kzg_proofs_wasm', '_recover_cells_and_kzg_proofs_wasm', '_verify_cell_kzg_proof_batch_wasm']"
