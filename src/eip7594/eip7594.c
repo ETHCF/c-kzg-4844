@@ -213,7 +213,7 @@ C_KZG_RET recover_cells_and_kzg_proofs(
 
     /* Populate recovered_cells_fr with available cells at the right places */
     for (size_t i = 0; i < num_cells; i++) {
-        size_t index = cell_indices[i] * FIELD_ELEMENTS_PER_CELL;
+        size_t index = (size_t) cell_indices[i] * FIELD_ELEMENTS_PER_CELL;
         for (size_t j = 0; j < FIELD_ELEMENTS_PER_CELL; j++) {
             /* Convert the untrusted input bytes to a field element */
             fr_t *ptr = &recovered_cells_fr[index + j];
@@ -234,7 +234,7 @@ C_KZG_RET recover_cells_and_kzg_proofs(
         }
     } else {
         /* Perform cell recovery */
-        ret = recover_cells(recovered_cells_fr, cell_indices, num_cells, recovered_cells_fr, s);
+        ret = recover_cells(recovered_cells_fr, cell_indices, (size_t)num_cells, recovered_cells_fr, s);
         if (ret != C_KZG_OK) goto out;
 
         /* Convert the recovered data points to byte-form */
@@ -384,11 +384,11 @@ C_KZG_RET compute_verify_cell_kzg_proof_batch_challenge(
                         + sizeof(uint64_t)                         /* FIELD_ELEMENTS_PER_CELL */
                         + sizeof(uint64_t)                         /* num_commitments */
                         + sizeof(uint64_t)                         /* num_cells */
-                        + (num_commitments * BYTES_PER_COMMITMENT) /* commitment_bytes */
-                        + (num_cells * sizeof(uint64_t))           /* commitment_indices */
-                        + (num_cells * sizeof(uint64_t))           /* cell_indices */
-                        + (num_cells * BYTES_PER_CELL)             /* cells */
-                        + (num_cells * BYTES_PER_PROOF);           /* proofs_bytes */
+                        + (size_t)(num_commitments * BYTES_PER_COMMITMENT) /* commitment_bytes */
+                        + (size_t)(num_cells * sizeof(uint64_t))           /* commitment_indices */
+                        + (size_t)(num_cells * sizeof(uint64_t))           /* cell_indices */
+                        + (size_t)(num_cells * BYTES_PER_CELL)             /* cells */
+                        + (size_t)(num_cells * BYTES_PER_PROOF);           /* proofs_bytes */
 
     /* Allocate space to copy this data into */
     ret = c_kzg_malloc((void **)&bytes, input_size);
@@ -653,7 +653,7 @@ static C_KZG_RET compute_commitment_to_aggregated_interpolation_poly(
             blst_fr_mul(&scaled_fr, &original_fr, &r_powers[cell_index]);
 
             /* Figure out the right index for this field element within the extended array */
-            size_t array_index = column_index * FIELD_ELEMENTS_PER_CELL + fr_index;
+            size_t array_index = (size_t)column_index * FIELD_ELEMENTS_PER_CELL + fr_index;
             /* Aggregate the scaled field element into the array */
             blst_fr_add(
                 &aggregated_column_cells[array_index],
@@ -769,19 +769,19 @@ static C_KZG_RET computed_weighted_sum_of_proofs(
     C_KZG_RET ret;
     fr_t *weighted_powers_of_r = NULL;
 
-    ret = new_fr_array(&weighted_powers_of_r, num_cells);
+    ret = new_fr_array(&weighted_powers_of_r, (size_t)num_cells);
     if (ret != C_KZG_OK) goto out;
 
     for (uint64_t i = 0; i < num_cells; i++) {
         /* Get scaling factor h_k^n where h_k is the coset factor for this cell */
         fr_t h_k_pow;
-        get_coset_shift_pow_for_cell(&h_k_pow, cell_indices[i], s);
+        get_coset_shift_pow_for_cell(&h_k_pow, (size_t)cell_indices[i], s);
 
         /* Scale the power of r by h_k^n */
         blst_fr_mul(&weighted_powers_of_r[i], &r_powers[i], &h_k_pow);
     }
 
-    ret = g1_lincomb_fast(weighted_proof_sum_out, proofs_g1, weighted_powers_of_r, num_cells);
+    ret = g1_lincomb_fast(weighted_proof_sum_out, proofs_g1, weighted_powers_of_r, (size_t)num_cells);
 
 out:
     c_kzg_free(weighted_powers_of_r);
@@ -844,9 +844,9 @@ C_KZG_RET verify_cell_kzg_proof_batch(
     // Deduplicate commitments
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    ret = c_kzg_calloc((void **)&unique_commitments, num_cells, sizeof(Bytes48));
+    ret = c_kzg_calloc((void **)&unique_commitments, (size_t)num_cells, sizeof(Bytes48));
     if (ret != C_KZG_OK) goto out;
-    ret = c_kzg_calloc((void **)&commitment_indices, num_cells, sizeof(uint64_t));
+    ret = c_kzg_calloc((void **)&commitment_indices, (size_t)num_cells, sizeof(uint64_t));
     if (ret != C_KZG_OK) goto out;
 
     /*
@@ -854,17 +854,17 @@ C_KZG_RET verify_cell_kzg_proof_batch(
      * indices to those unique commitments. We do this before the array allocations section below
      * because we need to know how many commitment weights there will be.
      */
-    num_commitments = num_cells;
-    memcpy(unique_commitments, commitments_bytes, num_cells * sizeof(Bytes48));
+    num_commitments = (size_t)num_cells;
+    memcpy(unique_commitments, commitments_bytes,(size_t) num_cells * sizeof(Bytes48));
     deduplicate_commitments(unique_commitments, commitment_indices, &num_commitments);
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     // Array allocations
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    ret = new_fr_array(&r_powers, num_cells);
+    ret = new_fr_array(&r_powers, (size_t)num_cells);
     if (ret != C_KZG_OK) goto out;
-    ret = new_g1_array(&proofs_g1, num_cells);
+    ret = new_g1_array(&proofs_g1, (size_t)num_cells);
     if (ret != C_KZG_OK) goto out;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -888,7 +888,7 @@ C_KZG_RET verify_cell_kzg_proof_batch(
      * Derive random factors for the linear combination. The exponents start with 0. That is, they
      * are r^0, r^1, r^2, r^3, and so on.
      */
-    compute_powers(r_powers, &r, num_cells);
+    compute_powers(r_powers, &r, (size_t)num_cells);
 
     /* There should be a proof for each cell */
     for (size_t i = 0; i < num_cells; i++) {
@@ -900,7 +900,7 @@ C_KZG_RET verify_cell_kzg_proof_batch(
     // Compute random linear combination of the proofs
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    ret = g1_lincomb_fast(&proof_lincomb, proofs_g1, r_powers, num_cells);
+    ret = g1_lincomb_fast(&proof_lincomb, proofs_g1, r_powers, (size_t)num_cells);
     if (ret != C_KZG_OK) goto out;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

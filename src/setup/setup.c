@@ -419,7 +419,7 @@ C_KZG_RET load_trusted_setup(
      * exponentially. With 8 bits, the tables are 96 MiB; with 9 bits, the tables are 192 MiB and so
      * forth. From our testing, there are diminishing returns after 8 bits.
      */
-    out->wbits = precompute;
+    out->wbits = (size_t)precompute;
 
     /* Sanity check in case this is called directly */
     if (num_g1_monomial_bytes != NUM_G1_POINTS * BYTES_PER_G1 ||

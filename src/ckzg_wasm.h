@@ -26,7 +26,7 @@ C_KZG_RET load_trusted_setup_wasm(
     uint64_t precompute
 );
 
-void free_trusted_setup_wasm();
+void free_trusted_setup_wasm(void);
 
 // EIP-4844 functions
 

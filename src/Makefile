@@ -109,7 +109,7 @@ HEADER_FILES := $(filter-out test/tinytest.h, $(HEADER_FILES))
 # Core
 ###############################################################################
 
-all: test
+all: test ckzg.o
 
 # This will populate the blst directory will files.
 $(BLST_BUILDSCRIPT):
@@ -262,5 +262,20 @@ clean:
 	    tests tests_cov tests_prof .blst_hash
 	@rm -rf analysis-report
 
+ckzg.o: ckzg.c $(BLST_LIBRARY)
+	@$(WCC) $(CFLAGS) -c $< -o $@
+
 
 EXPORTED_FUNCTIONS= "['_load_trusted_setup_wasm','_free_trusted_setup_wasm','_blob_to_kzg_commitment_wasm','_compute_blob_kzg_proof_wasm','_verify_blob_kzg_proof_wasm', '_verify_kzg_proof_wasm', '_compute_cells_and_kzg_proofs_wasm', '_recover_cells_and_kzg_proofs_wasm', '_verify_cell_kzg_proof_batch_wasm']"
+WASM_FLAGS= -s ALLOW_MEMORY_GROWTH -sMODULARIZE -sEXPORT_ES6
+
+kzg_wasm.o: ckzg_wasm.c | ckzg.o
+	@$(WCC) $(CFLAGS) -c $< && emcc ../blst/libblst.a ckzg.o ckzg_wasm.o -o kzg.js -s WASM=1 -s EXPORTED_FUNCTIONS=$(EXPORTED_FUNCTIONS) -s 'EXPORT_NAME="kzg"' -s EXPORTED_RUNTIME_METHODS="['cwrap']" $(WASM_FLAGS)
+
+.PHONY: wasm
+wasm-web: ckzg_wasm.c | ckzg.o 
+	@$(WCC) $(CFLAGS) -c $< && emcc ../blst/libblst.a ckzg.o ckzg_wasm.o -o kzg.js -s WASM=1 -O3 -s EXPORTED_FUNCTIONS=$(EXPORTED_FUNCTIONS) -s 'EXPORT_NAME="kzg"' -s EXPORTED_RUNTIME_METHODS="['cwrap']" $(WASM_FLAGS) -sENVIRONMENT=web --closure 1
+
+.PHONY: wasm-node
+wasm-node: ckzg_wasm.c | ckzg.o
+	@$(WCC) $(CFLAGS) -c $< && emcc ../blst/libblst.a ckzg.o ckzg_wasm.o -o kzg.js -s WASM=1 -O3 -s EXPORTED_FUNCTIONS=$(EXPORTED_FUNCTIONS) -s 'EXPORT_NAME="kzg"' -s EXPORTED_RUNTIME_METHODS="['cwrap']" $(WASM_FLAGS) -sENVIRONMENT=node --closure 1

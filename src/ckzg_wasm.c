@@ -4,7 +4,7 @@
 #include <string.h>
 
 
-char* invalid_arg()
+static char* invalid_arg(void)
 {
     char* msg = malloc(18);
     memcpy(msg, "invalid argument", 17);
@@ -12,7 +12,7 @@ char* invalid_arg()
     return msg;
 }
 
-char* unable_to_allocate_memory()
+static char* unable_to_allocate_memory(void)
 {
     char* msg = malloc(26);
     memcpy(msg, "unable to allocate memory", 25);
@@ -20,7 +20,7 @@ char* unable_to_allocate_memory()
     return msg;
 }
 
-char* internal_error()
+static char* internal_error(void)
 {
     char* msg = malloc(15);
     memcpy(msg, "internal error", 14);
@@ -28,15 +28,15 @@ char* internal_error()
     return msg;
 }
 
-void btox(char* xp, const char* bb, size_t n) 
+static void btox(char* xp, const char* bb, int n) 
 {
-    size_t size = n;
+    int size = n;
     const char xx[]= "0123456789ABCDEF";
     while (--n >= 0) xp[n] = xx[(bb[n>>1] >> ((1 - (n&1)) << 2)) & 0xF];
     xp[size] = 0;
 }
 
-uint8_t* xtob(char *hex, uint8_t *out, size_t size)
+static uint8_t* xtob(char *hex, uint8_t *out, size_t size)
 {
     uint8_t bytes[size / 2];
     size_t x = 0;
@@ -47,7 +47,7 @@ uint8_t* xtob(char *hex, uint8_t *out, size_t size)
        memcpy(byte, ptr, 2);
        byte[2] = 0;
        char *temp;
-       bytes[y] = strtol(byte, &temp, 16);
+       bytes[y] = (uint8_t)strtol(byte, &temp, 16);
        x = x + 2;
        y++;
        ptr = ptr + 2;
@@ -84,7 +84,7 @@ C_KZG_RET load_trusted_setup_wasm(
     return ok;
 }
 
-void free_trusted_setup_wasm()
+void free_trusted_setup_wasm(void)
 {
     free_trusted_setup(s);
     free(s);
@@ -103,6 +103,7 @@ char* blob_to_kzg_commitment_wasm(const Blob *blob)
         return unable_to_allocate_memory();
     case C_KZG_OK:
         break;
+    case C_KZG_ERROR:
     default: 
         return internal_error();
     }
@@ -110,7 +111,7 @@ char* blob_to_kzg_commitment_wasm(const Blob *blob)
     char* hex = malloc(size+1);
     btox(hex, (const char *)commit.bytes, size);
     return hex;
-};
+}
 
 char* compute_blob_kzg_proof_wasm(
     const Blob *blob,
@@ -128,6 +129,7 @@ char* compute_blob_kzg_proof_wasm(
         return unable_to_allocate_memory();
     case C_KZG_OK:
         break;
+    case C_KZG_ERROR:
     default: 
         return internal_error();
     }
@@ -135,7 +137,7 @@ char* compute_blob_kzg_proof_wasm(
     char* hex = malloc(size+1);
     btox(hex, (const char *)proof.bytes, size);
     return hex;
-};
+}
 
 const char* verify_blob_kzg_proof_wasm(
     const Blob *blob,
@@ -154,11 +156,12 @@ const char* verify_blob_kzg_proof_wasm(
             return "true";
         
         return "false";
+    case C_KZG_ERROR:
     default: 
         return "internal error";
     }
     
-};
+}
 
 const char* verify_kzg_proof_wasm(
     const Bytes48 *commitment_bytes,
@@ -179,6 +182,7 @@ const char* verify_kzg_proof_wasm(
             return "true";
         
         return "false";
+    case C_KZG_ERROR:
     default: 
         return "internal error";
     }
@@ -199,7 +203,8 @@ char* compute_cells_and_kzg_proofs_wasm(const Blob *blob)
     case C_KZG_MALLOC: 
         return unable_to_allocate_memory();
     case C_KZG_OK:
-        break; 
+        break;
+    case C_KZG_ERROR:
     default: 
         return internal_error();
     }
@@ -230,6 +235,7 @@ char* recover_cells_and_kzg_proofs_wasm(
         return unable_to_allocate_memory();
     case C_KZG_OK:
         break; 
+    case C_KZG_ERROR:
     default: 
         return internal_error();
     }
@@ -262,6 +268,7 @@ const char* verify_cell_kzg_proof_batch_wasm(
             return "true";
 
         return "false";
+    case C_KZG_ERROR:
     default:
         return "internal error";
     }
