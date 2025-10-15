@@ -57,6 +57,11 @@ static uint8_t* xtob(char *hex, uint8_t *out, size_t size)
 }
 KZGSettings *s;
 
+KZGSettings* get_settings_wasm(void) {
+    return s;
+}
+
+
 C_KZG_RET load_trusted_setup_wasm(
     char* g1_monomial,
     size_t g1_monomial_size,
@@ -202,8 +207,8 @@ const char* verify_kzg_proof_wasm(
 
 char* compute_cells_and_kzg_proofs_wasm(const Blob *blob)
 {
-    Cell* cells = calloc(CELLS_PER_EXT_BLOB+1, sizeof(Cell) );
-    memset(cells, 0, (CELLS_PER_EXT_BLOB+1) * sizeof(Cell));
+    Cell cells[CELLS_PER_EXT_BLOB];
+    memset(cells, 0, (CELLS_PER_EXT_BLOB) * sizeof(Cell));
     KZGProof proof;
     memset(&proof, 0, sizeof(KZGProof));
 
@@ -223,14 +228,13 @@ char* compute_cells_and_kzg_proofs_wasm(const Blob *blob)
 
     char *out = malloc(2*(sizeof(proof.bytes) + CELLS_PER_EXT_BLOB*BYTES_PER_CELL) + 1);
 
-    btox(out, (const char *)proof.bytes, sizeof(proof.bytes));
+    btox(out, (const char *)proof.bytes, sizeof(proof.bytes) * 2);
 
     for(size_t i = 0; i < CELLS_PER_EXT_BLOB; i++) {
-        btox((char*)((uintptr_t)out + 2*(sizeof(proof.bytes) + i*BYTES_PER_CELL)), (const char*)cells[i].bytes, sizeof(cells[i].bytes));
+        uintptr_t offset = 2*(sizeof(proof.bytes) + i*BYTES_PER_CELL);
+        btox((char*)((uintptr_t)out + offset), (const char*)cells[i].bytes, 2*BYTES_PER_CELL);
     }
-
-    free(cells);
-
+    
     return out;
 }
 
@@ -239,8 +243,8 @@ char* recover_cells_and_kzg_proofs_wasm(
     const Cell *cells,
     uint64_t num_cells)
 {
-    Cell *recovered_cells = calloc(CELLS_PER_EXT_BLOB+1, sizeof(Cell) );
-    memset(recovered_cells, 0, (CELLS_PER_EXT_BLOB+1) * sizeof(Cell));
+    Cell recovered_cells[CELLS_PER_EXT_BLOB];
+    memset(recovered_cells, 0, CELLS_PER_EXT_BLOB * sizeof(Cell));
     KZGProof proof;
     memset(&proof, 0, sizeof(KZGProof));
 
@@ -259,13 +263,12 @@ char* recover_cells_and_kzg_proofs_wasm(
 
     char *out = malloc(2*(sizeof(proof.bytes) + CELLS_PER_EXT_BLOB*BYTES_PER_CELL) + 1);
 
-    btox(out, (const char *)proof.bytes, sizeof(proof.bytes));
+    btox(out, (const char *)proof.bytes, sizeof(proof.bytes) * 2);
 
     for(size_t i = 0; i < CELLS_PER_EXT_BLOB; i++) {
-        btox((char*)((uintptr_t)out + 2*(sizeof(proof.bytes) + i*BYTES_PER_CELL)), (const char*)recovered_cells[i].bytes, sizeof(recovered_cells[i].bytes));
+        btox((char*)((uintptr_t)out + 2*(sizeof(proof.bytes) + i*BYTES_PER_CELL)), (const char*)recovered_cells[i].bytes, 2*BYTES_PER_CELL);
     }
 
-    free(recovered_cells);
 
     return out;
 }

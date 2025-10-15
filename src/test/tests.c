@@ -3,10 +3,7 @@
  */
 #include "ckzg.c"
 #include "tinytest.h"
-
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
+#include "test/tests.h"
 
 #ifdef PROFILE
 #include <gperftools/profiler.h>
@@ -22,37 +19,6 @@ KZGSettings s;
 // Helper functions
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static void get_rand_bytes32(Bytes32 *out) {
-    static uint64_t seed = 0;
-    blst_sha256(out->bytes, (uint8_t *)&seed, sizeof(seed));
-    seed++;
-}
-
-static void get_rand_field_element(Bytes32 *out) {
-    fr_t tmp_fr;
-    Bytes32 tmp_bytes;
-
-    /*
-     * Take 32 random bytes, make them an Fr, and then
-     * turn the Fr back to a bytes array.
-     */
-    get_rand_bytes32(&tmp_bytes);
-    hash_to_bls_field(&tmp_fr, &tmp_bytes);
-    bytes_from_bls_field(out, &tmp_fr);
-}
-
-static void get_rand_fr(fr_t *out) {
-    Bytes32 tmp_bytes;
-
-    get_rand_bytes32(&tmp_bytes);
-    hash_to_bls_field(out, &tmp_bytes);
-}
-
-static void get_rand_blob(Blob *out) {
-    for (size_t i = 0; i < FIELD_ELEMENTS_PER_BLOB; i++) {
-        get_rand_field_element((Bytes32 *)&out->bytes[i * 32]);
-    }
-}
 
 static void get_rand_g1_bytes(Bytes48 *out) {
     C_KZG_RET ret;
@@ -66,6 +32,14 @@ static void get_rand_g1_bytes(Bytes48 *out) {
     ret = blob_to_kzg_commitment(out, &blob, &s);
     ASSERT_EQUALS(ret, C_KZG_OK);
 }
+
+static void get_rand_fr(fr_t *out) {
+    Bytes32 tmp_bytes;
+
+    get_rand_bytes32(&tmp_bytes);
+    hash_to_bls_field(out, &tmp_bytes);
+}
+
 
 static void get_rand_g1(g1_t *out) {
     Bytes32 tmp_bytes;
@@ -82,6 +56,7 @@ static void get_rand_g2(g2_t *out) {
 
     blst_hash_to_g2(out, tmp_bytes.bytes, 32, NULL, 0, NULL, 0);
 }
+
 
 static void bytes32_from_hex(Bytes32 *out, const char *hex) {
     int matches;

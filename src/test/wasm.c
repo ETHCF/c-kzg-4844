@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include "ckzg_wasm.h"
+#include "test/tests.h"
 
 // Helper function to convert hex string to bytes
 static void hex_to_bytes(const char *hex, uint8_t *out, size_t out_len) {
@@ -127,8 +128,44 @@ static void test_verify_kzg_proof_with_points(void) {
     printf("✓ Test passed: verify kzg proofs with points\n\n");
 }
 
+static void test_recover_cells_and_kzg_proofs__succeeds_random_blob(void) {
+    C_KZG_RET ret;
+    Blob blob;
+    const size_t num_partial_cells = CELLS_PER_EXT_BLOB / 2;
+    uint64_t cell_indices[CELLS_PER_EXT_BLOB];
+    Cell cells[CELLS_PER_EXT_BLOB];
+    Cell partial_cells[num_partial_cells];
+    KZGProof proofs[CELLS_PER_EXT_BLOB];
+
+    /* Get a random blob */
+    get_rand_blob(&blob);
+
+
+    /* Get the cells and proofs */
+    ret = compute_cells_and_kzg_proofs(cells, proofs, &blob, get_settings_wasm());
+    assert(ret == C_KZG_OK);
+
+    /* Get the cells and proofs */
+    char* proof_and_cells = compute_cells_and_kzg_proofs_wasm(&blob);
+    
+    /* Erase half of the cells */
+    for (size_t i = 0; i < num_partial_cells; i++) {
+        cell_indices[i] = i * 2;
+        memcpy(&partial_cells[i], &cells[cell_indices[i]], sizeof(Cell));
+    }
+
+    char* restored_proof_and_cells = recover_cells_and_kzg_proofs_wasm(cell_indices, partial_cells, num_partial_cells);
+    assert(strcmp(proof_and_cells, restored_proof_and_cells) == 0);
+
+    assert(strlen(proof_and_cells) == 2*(48 + CELLS_PER_EXT_BLOB*BYTES_PER_CELL));
+   
+    free(proof_and_cells);
+    free(restored_proof_and_cells);
+}
+
+
 int main(void) {
-    printf("=== C-KZG-4844 Test Suite ===\n\n");
+    printf("=== C-KZG-4844 WASM Test Suite ===\n\n");
 
     // Load trusted setup from file
     printf("Loading trusted setup...\n");
@@ -151,6 +188,7 @@ int main(void) {
     // Run tests
     test_blob_to_kzg_commitment_and_verify_proof();
     test_verify_kzg_proof_with_points();
+    test_recover_cells_and_kzg_proofs__succeeds_random_blob();
 
     // Clean up
     free_trusted_setup_wasm();

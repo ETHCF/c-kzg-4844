@@ -70,7 +70,7 @@ const char* verify_cell_kzg_proof_batch_wasm(
     const Bytes48 *proofs_bytes,
     uint64_t num_cells);
 
-
+KZGSettings* get_settings_wasm(void);
 
 #ifdef __cplusplus
 }
