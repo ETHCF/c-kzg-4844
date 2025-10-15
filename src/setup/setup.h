@@ -15,10 +15,45 @@
  */
 #pragma once
 
+#ifndef SETUP_SETUP_H
+#define SETUP_SETUP_H
+
 #include "common/ret.h"
 #include "setup/settings.h"
 
 #include <stdio.h> /* For FILE */
+
+/** The number of bytes in a g1 point. */
+#define BYTES_PER_G1 48
+
+/** The number of bytes in a g2 point. */
+#define BYTES_PER_G2 96
+
+/** The number of g1 points in a trusted setup. */
+#define NUM_G1_POINTS FIELD_ELEMENTS_PER_BLOB
+
+/** The number of g2 points in a trusted setup. */
+#define NUM_G2_POINTS 65
+
+
+typedef enum {
+    C_SETTING_OK = 0,  /**< Success! */
+    C_SETTING_ERR_UNKNOWN, /**< An unknown error occurred. */
+    C_SETTING_BAD_PRECOMPUTE, /**< The supplied precompute value is invalid. */
+    C_SETTING_BAD_G1_MON_LEN, /**< The supplied g1 monomial byte length is incorrect. */
+    C_SETTING_BAD_G1_LAG_LEN, /**< The supplied g1 lagrange byte length is incorrect. */
+    C_SETTING_BAD_G2_MON_LEN, /**< The supplied g2 monomial byte length is incorrect. */
+    C_SETTING_BAD_G1_MON, /**< The supplied g1 mon omial bytes are invalid. */
+    C_SETTING_BAD_G1_LAG, /**< The supplied g1 lagrange bytes are invalid. */
+    C_SETTING_BAD_G2_MON, /**< The supplied g2 monomial bytes are invalid. */
+    C_SETTING_BAD_LAGRANGE, /**< The supplied trusted setup is not in Lagrange form. */
+    C_SETTING_BAD_COMPUTE_ROOTS, /**< Could not compute roots of unity. */
+    C_SETTING_BAD_BIT_REVERSE, /**< Could not bit-reverse the g1 lagrange points. */
+    C_SETTING_BAD_FK20_INIT, /**< Could not initialize the FK20 settings. */
+} C_SETTING_ERR;
+
+C_SETTING_ERR get_last_setting_error(void);
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Public Functions
@@ -46,3 +81,5 @@ void free_trusted_setup(KZGSettings *s);
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* SETUP_SETUP_H */

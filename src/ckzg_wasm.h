@@ -16,15 +16,11 @@
 extern "C" {
 #endif
 
-C_KZG_RET load_trusted_setup_wasm(
-    char* g1_monomial,
-    size_t g1_monomial_size,
-    char* g1_lagrange,
-    size_t g1_lagrange_size,
-    char* g2_monomial,
-    size_t g2_monomial_size,
-    uint64_t precompute
-);
+uint32_t load_trusted_setup_wasm(
+    uint8_t* g1_monomial_bytes,
+    uint8_t* g1_lagrange_bytes,
+    uint8_t* g2_monomial_bytes,
+    uint64_t precompute);
 
 C_KZG_RET load_trusted_setup_file_wasm( FILE *in, uint64_t precompute);
 

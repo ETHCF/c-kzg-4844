@@ -36,25 +36,6 @@ static void btox(char *xp, const char *bb, int n)
     xp[size] = 0;
 }
 
-static uint8_t* xtob(char *hex, uint8_t *out, size_t size)
-{
-    uint8_t bytes[size / 2];
-    size_t x = 0;
-    size_t y = 0;
-    char *ptr = hex;
-    while (x < size) {
-       char byte[3];
-       memcpy(byte, ptr, 2);
-       byte[2] = 0;
-       char *temp;
-       bytes[y] = (uint8_t)strtol(byte, &temp, 16);
-       x = x + 2;
-       y++;
-       ptr = ptr + 2;
-    }
-    memcpy(out, bytes, size / 2);
-    return out;
-}
 KZGSettings *s;
 
 KZGSettings* get_settings_wasm(void) {
@@ -62,31 +43,27 @@ KZGSettings* get_settings_wasm(void) {
 }
 
 
-C_KZG_RET load_trusted_setup_wasm(
-    char* g1_monomial,
-    size_t g1_monomial_size,
-    char* g1_lagrange,
-    size_t g1_lagrange_size,
-    char* g2_monomial,
-    size_t g2_monomial_size,
-    uint64_t precompute
-    ) 
+uint32_t load_trusted_setup_wasm(
+    uint8_t* g1_monomial_bytes,
+    uint8_t* g1_lagrange_bytes,
+    uint8_t* g2_monomial_bytes,
+    uint64_t precompute) 
 {
-    
-    if (s != NULL) {
-        free_trusted_setup_wasm();
-    }
-    s = malloc(sizeof(KZGSettings));
-    memset(s, 0, sizeof(KZGSettings));
 
-    uint8_t* g1_monomial_bytes = malloc(g1_monomial_size);
-    uint8_t* g1_lagrange_bytes = malloc(g1_lagrange_size);
-    uint8_t* g2_monomial_bytes = malloc(g2_monomial_size);
-    xtob(g1_monomial, g1_monomial_bytes, g1_monomial_size);
-    xtob(g1_lagrange, g1_lagrange_bytes, g1_lagrange_size);
-    xtob(g2_monomial, g2_monomial_bytes, g2_monomial_size);
-    C_KZG_RET ok = load_trusted_setup(s, g1_monomial_bytes, g1_monomial_size, g1_lagrange_bytes, g1_lagrange_size, g2_monomial_bytes, g2_monomial_size, precompute);
-    return ok;
+    uint32_t ret = load_trusted_setup(
+        s,
+        g1_monomial_bytes,
+        NUM_G1_POINTS * BYTES_PER_G1,
+        g1_lagrange_bytes,
+        NUM_G1_POINTS * BYTES_PER_G1,
+        g2_monomial_bytes,
+        NUM_G2_POINTS * BYTES_PER_G2,
+        precompute
+    );
+    if (ret == C_KZG_OK) {
+       return 0;
+    }
+    return ret | ((get_last_setting_error()&0xFFFF) << 16);
 }
 
 C_KZG_RET load_trusted_setup_file_wasm(FILE *in, uint64_t precompute)

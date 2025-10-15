@@ -288,18 +288,18 @@ ckzg.wo: ckzg.c | build_blst_wasm
 
 
 EXPORTED_FUNCTIONS= "['_load_trusted_setup_wasm','_free_trusted_setup_wasm','_blob_to_kzg_commitment_wasm','_compute_blob_kzg_proof_wasm','_verify_blob_kzg_proof_wasm', '_verify_kzg_proof_wasm', '_compute_cells_and_kzg_proofs_wasm', '_recover_cells_and_kzg_proofs_wasm', '_verify_cell_kzg_proof_batch_wasm']"
-WASM_FLAGS= -s EXPORTED_FUNCTIONS=$(EXPORTED_FUNCTIONS) -s 'EXPORT_NAME="kzg"' -s EXPORTED_RUNTIME_METHODS="['cwrap']" -sALLOW_MEMORY_GROWTH -sMODULARIZE -sEXPORT_ES6 -s WASM=1 -O2
+WASM_FLAGS= -s ASSERTIONS=1 -s EXPORTED_FUNCTIONS=$(EXPORTED_FUNCTIONS) -s 'EXPORT_NAME="kzg"' -s EXPORTED_RUNTIME_METHODS="['cwrap']" -sALLOW_MEMORY_GROWTH -sMODULARIZE -sEXPORT_ES6 -s WASM=1 -O2
 
 ckzg_wasm.wo: ckzg_wasm.c | ckzg.wo
-	$(WCC) $(CFLAGS) -c $< -o $@ && emcc ../lib/libblst_wasm.a ckzg.wo ckzg_wasm.wo -o kzg.js $(WASM_FLAGS)
+	$(WCC) $(CFLAGS) -c $< -o $@
 
 .PHONY: wasm
-wasm-web: ckzg_wasm.c | ckzg.wo 
-	@$(WCC) $(CFLAGS) -c $< && emcc ../lib/libblst_wasm.a ckzg.wo ckzg_wasm.wo -o kzg-web.js $(WASM_FLAGS) -sENVIRONMENT=web 
+wasm-web: ckzg_wasm.c | ckzg.wo ckzg_wasm.wo
+	emcc ../lib/libblst_wasm.a ckzg.wo ckzg_wasm.wo -o kzg-web.js $(WASM_FLAGS) -sENVIRONMENT=web 
 
 .PHONY: wasm-node
-wasm-node: ckzg_wasm.c | ckzg.wo
-	@$(WCC) $(CFLAGS) -c $< && emcc ../lib/libblst_wasm.a ckzg.wo ckzg_wasm.wo -o kzg-node.js $(WASM_FLAGS) -sENVIRONMENT=node
+wasm-node: ckzg_wasm.c | ckzg.wo ckzg_wasm.wo
+	emcc ../lib/libblst_wasm.a ckzg.wo ckzg_wasm.wo -o kzg-node.js -s 'EXPORT_NAME="kzg"' $(WASM_FLAGS) 
 
 ckzg.o: ckzg.c | blst
 	$(CC) $(CFLAGS) -c $< -o $@ -g 
@@ -309,8 +309,8 @@ ckzg_wasm.o: ckzg_wasm.c | ckzg.o blst
 
 .PHONY: wasm-test
 wasm-test: | blst ckzg.o ckzg_wasm.o
-	$(CC) $(CFLAGS) -g -o tests  test/wasm.c $(LIBS) ckzg.o ckzg_wasm.o ../lib/libblst.a
+	$(CC) $(CFLAGS) -O0 -g -o tests  test/wasm.c $(LIBS) ckzg.o ckzg_wasm.o ../lib/libblst.a
 
 .PHONY: wasm-clean
 wasm-clean:
-	@rm -f kzg.js kzg-web.js kzg-node.js *.wo tests *.o
+	@rm -f kzg.js kzg-web.js kzg-node.js *.wo tests *.o *.wasm

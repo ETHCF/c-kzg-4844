@@ -30,17 +30,6 @@
 // Macros
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/** The number of bytes in a g1 point. */
-#define BYTES_PER_G1 48
-
-/** The number of bytes in a g2 point. */
-#define BYTES_PER_G2 96
-
-/** The number of g1 points in a trusted setup. */
-#define NUM_G1_POINTS FIELD_ELEMENTS_PER_BLOB
-
-/** The number of g2 points in a trusted setup. */
-#define NUM_G2_POINTS 65
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Constants
@@ -374,7 +363,13 @@ static void init_settings(KZGSettings *out) {
     out->wbits = 0;
     out->scratch_size = 0;
 }
+// This variable is set to the last error that occurred in this file.
+volatile C_SETTING_ERR last_setting_error = C_SETTING_OK;
 
+
+C_SETTING_ERR get_last_setting_error(void) {
+    return last_setting_error;
+}
 /**
  * Load trusted setup into a KZGSettings.
  *
@@ -406,10 +401,12 @@ C_KZG_RET load_trusted_setup(
      * free_trusted_setup() without worrying about freeing a random pointer.
      */
     init_settings(out);
+    last_setting_error = C_SETTING_OK;
 
     /* It seems that blst limits the input to 15 */
     if (precompute > 15) {
         ret = C_KZG_BADARGS;
+        last_setting_error = C_SETTING_BAD_PRECOMPUTE;
         goto out_error;
     }
 
@@ -422,10 +419,17 @@ C_KZG_RET load_trusted_setup(
     out->wbits = (size_t)precompute;
 
     /* Sanity check in case this is called directly */
-    if (num_g1_monomial_bytes != NUM_G1_POINTS * BYTES_PER_G1 ||
-        num_g1_lagrange_bytes != NUM_G1_POINTS * BYTES_PER_G1 ||
-        num_g2_monomial_bytes != NUM_G2_POINTS * BYTES_PER_G2) {
+    if (num_g1_monomial_bytes != NUM_G1_POINTS * BYTES_PER_G1){
         ret = C_KZG_BADARGS;
+        last_setting_error = C_SETTING_BAD_G1_MON_LEN;
+        goto out_error;
+    } else if (num_g1_lagrange_bytes != NUM_G1_POINTS * BYTES_PER_G1) {
+        ret = C_KZG_BADARGS;
+        last_setting_error = C_SETTING_BAD_G1_LAG_LEN;
+        goto out_error;
+    } else if (num_g2_monomial_bytes != NUM_G2_POINTS * BYTES_PER_G2) {
+        ret = C_KZG_BADARGS;
+        last_setting_error = C_SETTING_BAD_G2_MON_LEN;
         goto out_error;
     }
 
@@ -449,6 +453,7 @@ C_KZG_RET load_trusted_setup(
         BLST_ERROR err = blst_p1_uncompress(&g1_affine, &g1_monomial_bytes[BYTES_PER_G1 * i]);
         if (err != BLST_SUCCESS) {
             ret = C_KZG_BADARGS;
+            last_setting_error = C_SETTING_BAD_G1_MON;
             goto out_error;
         }
         blst_p1_from_affine(&out->g1_values_monomial[i], &g1_affine);
@@ -460,6 +465,7 @@ C_KZG_RET load_trusted_setup(
         BLST_ERROR err = blst_p1_uncompress(&g1_affine, &g1_lagrange_bytes[BYTES_PER_G1 * i]);
         if (err != BLST_SUCCESS) {
             ret = C_KZG_BADARGS;
+            last_setting_error = C_SETTING_BAD_G1_LAG;
             goto out_error;
         }
         blst_p1_from_affine(&out->g1_values_lagrange_brp[i], &g1_affine);
@@ -471,6 +477,7 @@ C_KZG_RET load_trusted_setup(
         BLST_ERROR err = blst_p2_uncompress(&g2_affine, &g2_monomial_bytes[BYTES_PER_G2 * i]);
         if (err != BLST_SUCCESS) {
             ret = C_KZG_BADARGS;
+            last_setting_error = C_SETTING_BAD_G2_MON;
             goto out_error;
         }
         blst_p2_from_affine(&out->g2_values_monomial[i], &g2_affine);
@@ -478,23 +485,38 @@ C_KZG_RET load_trusted_setup(
 
     /* Make sure the trusted setup was loaded in Lagrange form */
     ret = is_trusted_setup_in_lagrange_form(out, NUM_G1_POINTS, NUM_G2_POINTS);
-    if (ret != C_KZG_OK) goto out_error;
+    if (ret != C_KZG_OK){
+        last_setting_error = C_SETTING_BAD_LAGRANGE;
+        goto out_error;
+    }
 
     /* Compute roots of unity and permute the G1 trusted setup */
     ret = compute_roots_of_unity(out);
-    if (ret != C_KZG_OK) goto out_error;
+    if (ret != C_KZG_OK) {
+        last_setting_error = C_SETTING_BAD_COMPUTE_ROOTS;
+        goto out_error;
+    }
 
     /* Bit reverse the Lagrange form points */
     ret = bit_reversal_permutation(out->g1_values_lagrange_brp, sizeof(g1_t), NUM_G1_POINTS);
-    if (ret != C_KZG_OK) goto out_error;
+    if (ret != C_KZG_OK) {
+        last_setting_error = C_SETTING_BAD_BIT_REVERSE;
+        goto out_error;
+    }
 
     /* Setup for FK20 proof computation */
     ret = init_fk20_multi_settings(out);
-    if (ret != C_KZG_OK) goto out_error;
+    if (ret != C_KZG_OK) {
+        last_setting_error = C_SETTING_BAD_FK20_INIT;
+        goto out_error;
+    }
 
     goto out_success;
 
 out_error:
+    if (ret != C_KZG_OK && last_setting_error == C_SETTING_OK) {
+        last_setting_error = C_SETTING_ERR_UNKNOWN;
+    }
     /*
      * Note: this only frees the fields in the KZGSettings structure. It does not free the
      * KZGSettings structure memory. If necessary, that must be done by the caller.
