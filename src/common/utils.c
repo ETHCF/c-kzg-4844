@@ -83,7 +83,7 @@ uint64_t reverse_bits(uint64_t n) {
  * @remark n must be a power of two.
  */
 uint64_t reverse_bits_limited(uint64_t n, uint64_t value) {
-    size_t unused_bit_len = 64 - log2_pow2(n);
+    size_t unused_bit_len = (size_t)(64 - log2_pow2(n));
     return reverse_bits(value) >> unused_bit_len;
 }
 

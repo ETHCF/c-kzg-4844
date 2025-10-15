@@ -783,13 +783,13 @@ C_KZG_RET verify_blob_kzg_proof_batch(
     }
 
     /* We will need a bunch of arrays to store our objects... */
-    ret = new_g1_array(&commitments_g1, n);
+    ret = new_g1_array(&commitments_g1, (size_t)n);
     if (ret != C_KZG_OK) goto out;
-    ret = new_g1_array(&proofs_g1, n);
+    ret = new_g1_array(&proofs_g1, (size_t)n);
     if (ret != C_KZG_OK) goto out;
-    ret = new_fr_array(&evaluation_challenges_fr, n);
+    ret = new_fr_array(&evaluation_challenges_fr, (size_t)n);
     if (ret != C_KZG_OK) goto out;
-    ret = new_fr_array(&ys_fr, n);
+    ret = new_fr_array(&ys_fr, (size_t)n);
     if (ret != C_KZG_OK) goto out;
     ret = new_fr_array(&poly, FIELD_ELEMENTS_PER_BLOB);
     if (ret != C_KZG_OK) goto out;
@@ -815,7 +815,7 @@ C_KZG_RET verify_blob_kzg_proof_batch(
     }
 
     ret = verify_kzg_proof_batch(
-        ok, commitments_g1, evaluation_challenges_fr, ys_fr, proofs_g1, n, s
+        ok, commitments_g1, evaluation_challenges_fr, ys_fr, proofs_g1, (size_t)n, s
     );
 
 out:
