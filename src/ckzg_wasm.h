@@ -52,6 +52,9 @@ const char* verify_kzg_proof_wasm(
 
 char* compute_cells_and_kzg_proofs_wasm(const Blob *blob);
 
+
+// Output is hex with fix 48 bytes for proof
+// and 2048 * 128 bytes for the cells
 char* recover_cells_and_kzg_proofs_wasm(
     const uint64_t* cell_indices,
     const Cell *cells,
