@@ -268,7 +268,7 @@ clean:
 ################################################################################
 
 .PHONY: wasm
-wasm: ckzg.o kzg_wasm.o wasm-web wasm-node
+wasm: ckzg.wo ckzg_wasm.wo wasm-web wasm-node
 
 # This will build blst without condition.
 # It will also copy the header files to our include directory.
@@ -281,20 +281,35 @@ build_blst_wasm: $(BLST_BUILDSCRIPT)
 	cp bindings/*.h ../inc
 	@echo $(BLST_HASH) > $(BLST_HASH_FILE)
 
-ckzg.o: ckzg.c | build_blst_wasm
-	@$(WCC) $(CFLAGS) -c $< -o $@
+ckzg.wo: ckzg.c | build_blst_wasm
+	$(WCC) $(CFLAGS) -c $< -o $@
+
+
 
 
 EXPORTED_FUNCTIONS= "['_load_trusted_setup_wasm','_free_trusted_setup_wasm','_blob_to_kzg_commitment_wasm','_compute_blob_kzg_proof_wasm','_verify_blob_kzg_proof_wasm', '_verify_kzg_proof_wasm', '_compute_cells_and_kzg_proofs_wasm', '_recover_cells_and_kzg_proofs_wasm', '_verify_cell_kzg_proof_batch_wasm']"
-WASM_FLAGS= -sALLOW_MEMORY_GROWTH -sMODULARIZE -sEXPORT_ES6
+WASM_FLAGS= -sALLOW_MEMORY_GROWTH -sMODULARIZE -sEXPORT_ES6 -s WASM=1 -O2
 
-kzg_wasm.o: ckzg_wasm.c | ckzg.o
-	@$(WCC) $(CFLAGS) -c $< && emcc ../lib/libblst_wasm.a ckzg.o ckzg_wasm.o -o kzg.js -s WASM=1 -s EXPORTED_FUNCTIONS=$(EXPORTED_FUNCTIONS) -s 'EXPORT_NAME="kzg"' -s EXPORTED_RUNTIME_METHODS="['cwrap']" $(WASM_FLAGS)
+ckzg_wasm.wo: ckzg_wasm.c | ckzg.wo
+	$(WCC) $(CFLAGS) -c $< -o $@ && emcc ../lib/libblst_wasm.a ckzg.wo ckzg_wasm.wo -o kzg.js -s EXPORTED_FUNCTIONS=$(EXPORTED_FUNCTIONS) -s 'EXPORT_NAME="kzg"' -s EXPORTED_RUNTIME_METHODS="['cwrap']" $(WASM_FLAGS)
 
 .PHONY: wasm
-wasm-web: ckzg_wasm.c | ckzg.o 
-	@$(WCC) $(CFLAGS) -c $< && emcc ../lib/libblst_wasm.a ckzg.o ckzg_wasm.o -o kzg-web.js -s WASM=1 -O3 -s EXPORTED_FUNCTIONS=$(EXPORTED_FUNCTIONS) -s 'EXPORT_NAME="kzg"' -s EXPORTED_RUNTIME_METHODS="['cwrap']" $(WASM_FLAGS) -sENVIRONMENT=web 
+wasm-web: ckzg_wasm.c | ckzg.wo 
+	@$(WCC) $(CFLAGS) -c $< && emcc ../lib/libblst_wasm.a ckzg.wo ckzg_wasm.wo -o kzg-web.js  -s EXPORTED_FUNCTIONS=$(EXPORTED_FUNCTIONS) -s 'EXPORT_NAME="kzg"' -s EXPORTED_RUNTIME_METHODS="['cwrap']" $(WASM_FLAGS) -sENVIRONMENT=web 
 
 .PHONY: wasm-node
-wasm-node: ckzg_wasm.c | ckzg.o
-	@$(WCC) $(CFLAGS) -c $< && emcc ../lib/libblst_wasm.a ckzg.o ckzg_wasm.o -o kzg-node.js -s WASM=1 -O3 -s EXPORTED_FUNCTIONS=$(EXPORTED_FUNCTIONS) -s 'EXPORT_NAME="kzg"' -s EXPORTED_RUNTIME_METHODS="['cwrap']" $(WASM_FLAGS) -sENVIRONMENT=node
+wasm-node: ckzg_wasm.c | ckzg.wo
+	@$(WCC) $(CFLAGS) -c $< && emcc ../lib/libblst_wasm.a ckzg.wo ckzg_wasm.wo -o kzg-node.js -s EXPORTED_FUNCTIONS=$(EXPORTED_FUNCTIONS) -s 'EXPORT_NAME="kzg"' -s EXPORTED_RUNTIME_METHODS="['cwrap']" $(WASM_FLAGS) -sENVIRONMENT=node
+
+ckzg.o: ckzg.c | blst
+	$(CC) $(CFLAGS) -c $< -o $@ 
+
+ckzg_wasm.o: ckzg_wasm.c | ckzg.o blst
+	$(CC) $(CFLAGS) -c $< -o $@ 
+
+wasm-test: | blst ckzg.o ckzg_wasm.o
+	$(CC) $(CFLAGS) -o tests  wasm-test.c $(LIBS) ckzg.o ckzg_wasm.o ../lib/libblst.a
+
+.PHONY: wasm-clean
+wasm-clean:
+	@rm -f kzg.js kzg-web.js kzg-node.js *.wo

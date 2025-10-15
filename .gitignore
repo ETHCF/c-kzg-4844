@@ -9,6 +9,7 @@ analysis-report/
 *.o
 *.s
 *.a
+*.wo
 *.out
 .vscode/
 .idea/

@@ -28,7 +28,7 @@ static char* internal_error(void)
     return msg;
 }
 
-static void btox(char* xp, const char* bb, int n) 
+static void btox(char *xp, const char *bb, int n) 
 {
     int size = n;
     const char xx[]= "0123456789ABCDEF";
@@ -82,6 +82,17 @@ C_KZG_RET load_trusted_setup_wasm(
     xtob(g2_monomial, g2_monomial_bytes, g2_monomial_size);
     C_KZG_RET ok = load_trusted_setup(s, g1_monomial_bytes, g1_monomial_size, g1_lagrange_bytes, g1_lagrange_size, g2_monomial_bytes, g2_monomial_size, precompute);
     return ok;
+}
+
+C_KZG_RET load_trusted_setup_file_wasm(FILE *in, uint64_t precompute)
+{
+    if (s != NULL) {
+        free_trusted_setup_wasm();
+    }
+    s = malloc(sizeof(KZGSettings));
+    memset(s, 0, sizeof(KZGSettings));
+
+    return load_trusted_setup_file(s, in, precompute);
 }
 
 void free_trusted_setup_wasm(void)
