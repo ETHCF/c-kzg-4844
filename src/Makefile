@@ -308,7 +308,7 @@ ckzg_wasm.o: ckzg_wasm.c | ckzg.o blst
 	$(CC) $(CFLAGS) -c $< -o $@ 
 
 wasm-test: | blst ckzg.o ckzg_wasm.o
-	$(CC) $(CFLAGS) -o tests  wasm-test.c $(LIBS) ckzg.o ckzg_wasm.o ../lib/libblst.a
+	$(CC) $(CFLAGS) -o tests  test/wasm.c $(LIBS) ckzg.o ckzg_wasm.o ../lib/libblst.a
 
 .PHONY: wasm-clean
 wasm-clean:
