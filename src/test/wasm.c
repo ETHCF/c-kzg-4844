@@ -162,7 +162,37 @@ static void test_recover_cells_and_kzg_proofs__succeeds_random_blob(void) {
     free(proof_and_cells);
     free(restored_proof_and_cells);
 }
+static void test_verify_cell_kzg_proof_batch__succeeds_random_blob(void) {
+    C_KZG_RET ret;
+    Blob blob;
+    KZGCommitment commitment;
+    Bytes48 commitments[CELLS_PER_EXT_BLOB];
+    uint64_t cell_indices[CELLS_PER_EXT_BLOB];
+    Cell cells[CELLS_PER_EXT_BLOB];
+    KZGProof proofs[CELLS_PER_EXT_BLOB];
 
+    /* Get a random blob */
+    get_rand_blob(&blob);
+
+    /* Get the commitment to the blob */
+    ret = blob_to_kzg_commitment(&commitment, &blob, get_settings_wasm());
+    assert(ret == C_KZG_OK);
+
+    /* Compute cells and proofs */
+    ret = compute_cells_and_kzg_proofs(cells, proofs, &blob, get_settings_wasm());
+    assert(ret == C_KZG_OK);
+
+    /* Initialize list of commitments & cell indices */
+    for (size_t i = 0; i < CELLS_PER_EXT_BLOB; i++) {
+        memcpy(commitments[i].bytes, &commitment, BYTES_PER_COMMITMENT);
+        cell_indices[i] = i;
+    }
+
+    /* Verify all the proofs */
+    const char* verify_result = verify_cell_kzg_proof_batch_wasm(
+         commitments, cell_indices, cells, proofs, CELLS_PER_EXT_BLOB);
+    assert(strcmp(verify_result, "true") == 0);
+}
 
 int main(void) {
     printf("=== C-KZG-4844 WASM Test Suite ===\n\n");
@@ -189,6 +219,7 @@ int main(void) {
     test_blob_to_kzg_commitment_and_verify_proof();
     test_verify_kzg_proof_with_points();
     test_recover_cells_and_kzg_proofs__succeeds_random_blob();
+    test_verify_cell_kzg_proof_batch__succeeds_random_blob();
 
     // Clean up
     free_trusted_setup_wasm();
