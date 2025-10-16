@@ -186,10 +186,10 @@ char* compute_cells_and_kzg_proofs_wasm(const Blob *blob)
 {
     Cell cells[CELLS_PER_EXT_BLOB];
     memset(cells, 0, (CELLS_PER_EXT_BLOB) * sizeof(Cell));
-    KZGProof proof;
-    memset(&proof, 0, sizeof(KZGProof));
+    KZGProof proofs[CELLS_PER_EXT_BLOB];
+    memset(proofs, 0, CELLS_PER_EXT_BLOB *sizeof(KZGProof));
 
-    const C_KZG_RET ret = compute_cells_and_kzg_proofs(cells, &proof, blob, s);
+    const C_KZG_RET ret = compute_cells_and_kzg_proofs(cells, proofs, blob, s);
     switch (ret) {
     case C_KZG_BADARGS: 
         return invalid_arg();
@@ -203,13 +203,17 @@ char* compute_cells_and_kzg_proofs_wasm(const Blob *blob)
     }
 
 
-    char *out = malloc(2*(sizeof(proof.bytes) + CELLS_PER_EXT_BLOB*BYTES_PER_CELL) + 1);
+    char *out = malloc(2*(CELLS_PER_EXT_BLOB*sizeof(KZGProof) + CELLS_PER_EXT_BLOB*BYTES_PER_CELL) + 1);
 
-    btox(out, (const char *)proof.bytes, sizeof(proof.bytes) * 2);
+
+    for (size_t i = 0; i < CELLS_PER_EXT_BLOB; i++) {
+        btox((char*)((uintptr_t)out + 2*(i*sizeof(KZGProof))), (const char*)proofs[i].bytes, 2*sizeof(KZGProof));
+    }
+
+    uintptr_t offset = 2*(CELLS_PER_EXT_BLOB*sizeof(KZGProof));
 
     for(size_t i = 0; i < CELLS_PER_EXT_BLOB; i++) {
-        uintptr_t offset = 2*(sizeof(proof.bytes) + i*BYTES_PER_CELL);
-        btox((char*)((uintptr_t)out + offset), (const char*)cells[i].bytes, 2*BYTES_PER_CELL);
+        btox((char*)((uintptr_t)out + offset + 2* i*BYTES_PER_CELL), (const char*)cells[i].bytes, 2*BYTES_PER_CELL);
     }
     
     return out;
@@ -222,14 +226,14 @@ char* recover_cells_and_kzg_proofs_wasm(
 {
     Cell recovered_cells[CELLS_PER_EXT_BLOB];
     memset(recovered_cells, 0, CELLS_PER_EXT_BLOB * sizeof(Cell));
-    KZGProof proof;
-    memset(&proof, 0, sizeof(KZGProof));
+    KZGProof proofs[CELLS_PER_EXT_BLOB];
+    memset(proofs, 0, CELLS_PER_EXT_BLOB *sizeof(KZGProof));
 
-    const C_KZG_RET ret = recover_cells_and_kzg_proofs(recovered_cells, &proof, cell_indices, cells, num_cells, s);
+    const C_KZG_RET ret = recover_cells_and_kzg_proofs(recovered_cells, proofs, cell_indices, cells, num_cells, s);
     switch (ret) {
     case C_KZG_BADARGS: 
         return invalid_arg();
-    case C_KZG_MALLOC: 
+    case C_KZG_MALLOC:  
         return unable_to_allocate_memory();
     case C_KZG_OK:
         break; 
@@ -238,14 +242,18 @@ char* recover_cells_and_kzg_proofs_wasm(
         return internal_error();
     }
 
-    char *out = malloc(2*(sizeof(proof.bytes) + CELLS_PER_EXT_BLOB*BYTES_PER_CELL) + 1);
+    char *out = malloc(2*(CELLS_PER_EXT_BLOB*sizeof(KZGProof) + CELLS_PER_EXT_BLOB*BYTES_PER_CELL) + 1);
 
-    btox(out, (const char *)proof.bytes, sizeof(proof.bytes) * 2);
 
-    for(size_t i = 0; i < CELLS_PER_EXT_BLOB; i++) {
-        btox((char*)((uintptr_t)out + 2*(sizeof(proof.bytes) + i*BYTES_PER_CELL)), (const char*)recovered_cells[i].bytes, 2*BYTES_PER_CELL);
+    for (size_t i = 0; i < CELLS_PER_EXT_BLOB; i++) {
+        btox((char*)((uintptr_t)out + 2*(i*sizeof(KZGProof))), (const char*)proofs[i].bytes, 2*sizeof(KZGProof));
     }
 
+    uintptr_t offset = 2*(CELLS_PER_EXT_BLOB*sizeof(KZGProof));
+
+    for(size_t i = 0; i < CELLS_PER_EXT_BLOB; i++) {
+        btox((char*)((uintptr_t)out + offset + 2*(i*BYTES_PER_CELL)), (const char*)recovered_cells[i].bytes, 2*BYTES_PER_CELL);
+    }
 
     return out;
 }

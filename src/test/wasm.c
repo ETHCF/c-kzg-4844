@@ -157,7 +157,7 @@ static void test_recover_cells_and_kzg_proofs__succeeds_random_blob(void) {
     char* restored_proof_and_cells = recover_cells_and_kzg_proofs_wasm(cell_indices, partial_cells, num_partial_cells);
     assert(strcmp(proof_and_cells, restored_proof_and_cells) == 0);
 
-    assert(strlen(proof_and_cells) == 2*(48 + CELLS_PER_EXT_BLOB*BYTES_PER_CELL));
+    assert(strlen(proof_and_cells) == 2*(48*CELLS_PER_EXT_BLOB + CELLS_PER_EXT_BLOB*BYTES_PER_CELL));
    
     free(proof_and_cells);
     free(restored_proof_and_cells);
