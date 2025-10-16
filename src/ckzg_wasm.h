@@ -69,6 +69,11 @@ const char* verify_cell_kzg_proof_batch_wasm(
     const Bytes48 *proofs_bytes,
     uint64_t num_cells);
 
+const char* verify_cell_kzg_proof_wasm(
+    const KZGCommitment *commitment,
+    const Cell *cells, 
+    const KZGProof *proof);
+
 KZGSettings* get_settings_wasm(void);
 
 #ifdef __cplusplus

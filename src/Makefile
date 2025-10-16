@@ -287,7 +287,7 @@ ckzg.wo: ckzg.c | build_blst_wasm
 
 
 
-EXPORTED_FUNCTIONS= "['_load_trusted_setup_wasm','_free_trusted_setup_wasm','_blob_to_kzg_commitment_wasm','_compute_blob_kzg_proof_wasm','_verify_blob_kzg_proof_wasm', '_verify_kzg_proof_wasm', '_compute_cells_and_kzg_proofs_wasm', '_recover_cells_and_kzg_proofs_wasm', '_verify_cell_kzg_proof_batch_wasm']"
+EXPORTED_FUNCTIONS= "['_load_trusted_setup_wasm','_free_trusted_setup_wasm','_blob_to_kzg_commitment_wasm','_compute_blob_kzg_proof_wasm','_verify_blob_kzg_proof_wasm', '_verify_kzg_proof_wasm', '_compute_cells_and_kzg_proofs_wasm', '_recover_cells_and_kzg_proofs_wasm', '_verify_cell_kzg_proof_batch_wasm', '_verify_cell_kzg_proof_wasm']"
 WASM_FLAGS= -s ASSERTIONS=1 -s EXPORTED_FUNCTIONS=$(EXPORTED_FUNCTIONS) -s 'EXPORT_NAME="kzg"' -s EXPORTED_RUNTIME_METHODS="['cwrap']" -sALLOW_MEMORY_GROWTH -sMODULARIZE -sEXPORT_ES6 -s WASM=1 -O2
 
 ckzg_wasm.wo: ckzg_wasm.c | ckzg.wo

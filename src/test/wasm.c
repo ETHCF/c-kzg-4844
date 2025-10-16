@@ -194,6 +194,32 @@ static void test_verify_cell_kzg_proof_batch__succeeds_random_blob(void) {
     assert(strcmp(verify_result, "true") == 0);
 }
 
+
+static void test_verify_cell_kzg_proof_succeeds_random_blob(void) {
+    C_KZG_RET ret;
+    Blob blob;
+    KZGCommitment commitment;
+    Cell cells[CELLS_PER_EXT_BLOB];
+    KZGProof proofs[CELLS_PER_EXT_BLOB];
+
+    /* Get a random blob */
+    get_rand_blob(&blob);
+
+    /* Get the commitment to the blob */
+    ret = blob_to_kzg_commitment(&commitment, &blob, get_settings_wasm());
+    assert(ret == C_KZG_OK);
+
+    /* Compute cells and proofs */
+    ret = compute_cells_and_kzg_proofs(cells, proofs, &blob, get_settings_wasm());
+    assert(ret == C_KZG_OK);
+
+
+    /* Verify all the proofs */
+    const char* verify_result = verify_cell_kzg_proof_wasm(
+         &commitment, cells, proofs);
+    assert(strcmp(verify_result, "true") == 0);
+}
+
 int main(void) {
     printf("=== C-KZG-4844 WASM Test Suite ===\n\n");
 
@@ -220,6 +246,7 @@ int main(void) {
     test_verify_kzg_proof_with_points();
     test_recover_cells_and_kzg_proofs__succeeds_random_blob();
     test_verify_cell_kzg_proof_batch__succeeds_random_blob();
+    test_verify_cell_kzg_proof_succeeds_random_blob();
 
     // Clean up
     free_trusted_setup_wasm();

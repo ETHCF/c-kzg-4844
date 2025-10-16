@@ -283,3 +283,22 @@ const char* verify_cell_kzg_proof_batch_wasm(
         return "internal error";
     }
 }
+
+const char* verify_cell_kzg_proof_wasm(
+    const KZGCommitment *commitment,
+    const Cell *cells, 
+    const KZGProof *proof)
+{
+
+    Bytes48 commitments[CELLS_PER_EXT_BLOB];
+    uint64_t cell_indices[CELLS_PER_EXT_BLOB];
+
+     for (size_t i = 0; i < CELLS_PER_EXT_BLOB; i++) {
+        memcpy(commitments[i].bytes, commitment, BYTES_PER_COMMITMENT);
+        cell_indices[i] = i;
+    }
+
+    return verify_cell_kzg_proof_batch_wasm(commitments, cell_indices, cells, proof, CELLS_PER_EXT_BLOB);
+
+}
+
